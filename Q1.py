@@ -59,6 +59,19 @@ def get_neighbors(arr, cur):
     return neighbors
 
 
+def get_path(d, start, end):
+    s = str(start)
+    e = str(end)
+    path = list()
+    val = d[e]
+    path.append(end)
+    path.append(val)
+    while val != s:
+        val = d[val]
+        path.append(val)
+    return path
+
+
 def find(arr, el):
     '''
     Find Start and End cells
@@ -76,16 +89,19 @@ def bfs(grid, start):
     print "Starting at {}".format(start)
     visited = {}
     visited[start] = True
+    path = {}
 
     while not fringe.empty():
         current = fringe.get()
         print "Visiting at {}".format(current)
         if grid[current[0]][current[1]] == '4':
             print "Found {}".format(current)
+            print "Path = {}".format(get_path(path, start, current))
             break
 
         for n in get_neighbors(grid, current):
             if n not in visited and grid[n[0]][n[1]] != '1':
+                path[str(n)] = str(current)
                 fringe.put(n)
                 visited[n] = True
 
@@ -96,16 +112,19 @@ def dfs(grid, start):
     print "Starting at {}".format(start)
     visited = {}
     visited[start] = True
+    path = {}
 
     while fringe:
         current = fringe.pop()
         print "Visiting at {}".format(current)
         if grid[current[0]][current[1]] == '4':
             print "Found {}".format(current)
+            print "Path = {}".format(get_path(path, start, current))
             break
 
         for n in get_neighbors(grid, current):
             if n not in visited and grid[n[0]][n[1]] != '1':
+                path[str(n)] = str(current)
                 fringe.append(n)
                 visited[n] = True
 
@@ -126,6 +145,7 @@ def a_star(grid, start, end):
     cost_so_far = {}
     came_from[start] = None
     cost_so_far[start] = 0
+    path = {}
 
     while not fringe.empty():
         current = fringe.pop()
@@ -133,6 +153,7 @@ def a_star(grid, start, end):
 
         if current == end:
             print "Found {}".format(current)
+            print "Path = {}".format(get_path(path, start, current))
             break
 
         for n in get_neighbors(grid, current):
@@ -142,6 +163,7 @@ def a_star(grid, start, end):
                 priority = new_cost + heuristic(end, n)
                 fringe.push(n, priority)
                 came_from[n] = current
+                path[str(n)] = str(current)
 
 
 files = ['maze_e1.txt', 'maze_e2.txt', 'maze_e3.txt']
