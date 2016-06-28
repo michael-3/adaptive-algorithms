@@ -63,6 +63,26 @@ def bfs(grid, start):
                 visited[n] = True
 
 
+def dfs(grid, start):
+    fringe = list()
+    fringe.append(start)
+    print "Starting at {}".format(start)
+    visited = {}
+    visited[start] = True
+
+    while fringe:
+        current = fringe.pop()
+        print "Visiting at {}".format(current)
+        if grid[current[0]][current[1]] == '4':
+            print "Found {}".format(current)
+            break
+
+        for n in get_neighbors(grid, current):
+            if n not in visited and grid[n[0]][n[1]] != '1':
+                fringe.append(n)
+                visited[n] = True
+
+
 lines = [line.rstrip('\n') for line in open('mazes/maze_e2.txt')]
 
 grid = []
@@ -70,4 +90,4 @@ for line in lines:
     grid.append(line.split(','))
 
 start = find(grid, '3')
-bfs(grid, start)
+dfs(grid, start)
