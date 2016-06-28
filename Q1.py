@@ -1,4 +1,5 @@
-from pprint import pprint
+from Queue import Queue
+
 '''
 2d Array to represent maze:
 0 - Empty cell
@@ -7,12 +8,66 @@ from pprint import pprint
 4 - Ending Point
 '''
 
-lines = [line.rstrip('\n') for line in open('mazes/maze1.txt')]
+
+def get_neighbors(arr, cur):
+    cols = len(arr)
+    rows = len(arr[0])
+    r = cur[0]
+    c = cur[1]
+    neighbors = []
+
+    # top
+    if (r - 1) > -1:
+        neighbors.append((r - 1, c))
+
+    # right
+    if (c + 1) < cols:
+        neighbors.append((r, c + 1))
+
+    # bottom
+    if (r + 1) < rows:
+        neighbors.append((r + 1, c))
+
+    # left
+    if (c - 1) > -1:
+        neighbors.append((r, c - 1))
+
+    return neighbors
+
+
+def find(arr, el):
+    for i, x in enumerate(arr):
+        for j, y in enumerate(x):
+            if y == el:
+                return i, j
+    return -1, -1
+
+
+def bfs(grid, start):
+    fringe = Queue()
+    fringe.put(start)
+    print "Starting at {}".format(start)
+    visited = {}
+    visited[start] = True
+
+    while not fringe.empty():
+        current = fringe.get()
+        print "Visiting at {}".format(current)
+        if grid[current[0]][current[1]] == '4':
+            print "Found {}".format(current)
+            break
+
+        for n in get_neighbors(grid, current):
+            if n not in visited and grid[n[0]][n[1]] != '1':
+                fringe.put(n)
+                visited[n] = True
+
+
+lines = [line.rstrip('\n') for line in open('mazes/maze_e2.txt')]
 
 grid = []
 for line in lines:
     grid.append(line.split(','))
 
-
-
-pprint(grid)
+start = find(grid, '3')
+bfs(grid, start)
