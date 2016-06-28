@@ -83,11 +83,20 @@ def dfs(grid, start):
                 visited[n] = True
 
 
-lines = [line.rstrip('\n') for line in open('mazes/maze_e2.txt')]
+files = ['maze_e1.txt', 'maze_e2.txt', 'maze_e3.txt']
 
-grid = []
-for line in lines:
-    grid.append(line.split(','))
+for f in files:
+    lines = [line.rstrip('\n') for line in open('mazes/' + f)]
 
-start = find(grid, '3')
-dfs(grid, start)
+    grid = []
+    for line in lines:
+        grid.append(line.split(','))
+    start = find(grid, '3')
+    print "Starting BFS for {}".format(f)
+    print "==================="
+    bfs(grid, start)
+    print "Starting DFS for {}".format(f)
+    print "==================="
+    dfs(grid, start)
+
+
