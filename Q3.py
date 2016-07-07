@@ -44,6 +44,7 @@ distance = np.array(distance)
 
 # initial permutation
 p = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+# random.shuffle(p)
 
 # optimized P
 p_opt = [18, 14, 10, 3, 9, 4, 2, 12, 11, 16, 19, 15, 20, 8, 13, 17, 5, 7, 1, 6]
@@ -53,12 +54,16 @@ cost = cost_function(flow, distance, p)
 print "Cost:", cost, "Permutation:", p
 
 # iterations
-T = 500
+T = 600
 tabu_list = {}
 
 prev_cost = cost
 min_cost = cost
 min_p = p
+
+aspiration = False
+search_ctr = 0
+
 for t in xrange(T):
     decrement_tabu(tabu_list)
     d = dict()
@@ -78,15 +83,19 @@ for t in xrange(T):
     tabu_list[minimum] = 15
 
     # Aspiration, take random if previous cost is greater or equal to curent
-    # if d[minimum] >= prev_cost:
-    #     minimum = random.choice(d2.keys())
-    # prev_cost = d2[minimum]
+    if aspiration:
+        if d[minimum] >= prev_cost:
+            minimum = random.choice(d2.keys())
+        prev_cost = d2[minimum]
 
     p = swap_index(p, minimum)
-    print "Cost:", cost_function(flow, distance, p), "Permutation:", p, "Swap:", minimum, "T:", t + 1
+    cost = cost_function(flow, distance, p)
+
     if min_cost > cost:
         min_cost = cost
         min_p = p
+
+    print "Cost:", cost, "Permutation:", p, "Swap:", minimum, "T:", t + 1, "\tMin Cost:", min_cost
 
 print min_cost, min_p
 print cost_function(flow, distance, p_opt), p_opt
