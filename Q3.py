@@ -54,7 +54,7 @@ cost = cost_function(flow, distance, p)
 print "Cost:", cost, "Permutation:", p
 
 # iterations
-T = 600
+T = 10000
 tabu_list = {}
 
 prev_cost = cost
