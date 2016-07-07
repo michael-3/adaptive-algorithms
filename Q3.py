@@ -1,6 +1,7 @@
 import copy
 import csv
-import json
+import pprint
+import random
 import numpy as np
 import itertools as it
 
@@ -27,6 +28,12 @@ def swap_index(p, s):
     return temp
 
 
+def decrement_tabu(d):
+    for i in d:
+        if d[i] > 0:
+            d[i] -= 1
+
+
 # set up 2d arrays for flow and distance
 flow = list(csv.reader(open("q3_csv/Flow.csv"), delimiter=','))
 flow = [[int(string) for string in inner] for inner in flow]
@@ -38,27 +45,48 @@ distance = np.array(distance)
 # initial permutation
 p = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
+# optimized P
+p_opt = [18, 14, 10, 3, 9, 4, 2, 12, 11, 16, 19, 15, 20, 8, 13, 17, 5, 7, 1, 6]
+
 # initial cost
 cost = cost_function(flow, distance, p)
 print "Cost:", cost, "Permutation:", p
 
 # iterations
-T = 100
+T = 500
 tabu_list = {}
+
+prev_cost = cost
+min_cost = cost
+min_p = p
 for t in xrange(T):
+    decrement_tabu(tabu_list)
     d = dict()
+    d2 = dict()
     combs = list(it.combinations(p, 2))
     for i, elem in enumerate(combs):
         perm = swap_index(p, elem)
         cost = cost_function(flow, distance, perm)
         d[elem] = cost
+        d2[elem] = cost
 
     minimum = min(d, key=d.get)
-    while minimum in tabu_list:
+
+    while minimum in tabu_list and tabu_list[minimum] > 0:
         del d[minimum]
         minimum = min(d, key=d.get)
-        
-    tabu_list[minimum] = True
+    tabu_list[minimum] = 15
+
+    # Aspiration, take random if previous cost is greater or equal to curent
+    # if d[minimum] >= prev_cost:
+    #     minimum = random.choice(d2.keys())
+    # prev_cost = d2[minimum]
 
     p = swap_index(p, minimum)
     print "Cost:", cost_function(flow, distance, p), "Permutation:", p, "Swap:", minimum, "T:", t + 1
+    if min_cost > cost:
+        min_cost = cost
+        min_p = p
+
+print min_cost, min_p
+print cost_function(flow, distance, p_opt), p_opt
