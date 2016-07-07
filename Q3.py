@@ -1,47 +1,13 @@
+import copy
 import csv
+import json
 import numpy as np
+import itertools as it
 
-flow = list(csv.reader(open("q3_csv/Flow.csv"), delimiter=','))
-distance = list(csv.reader(open("q3_csv/Distance.csv"), delimiter=','))
-
-p = [2, 4, 1, 5, 3]
-p = [4, 2, 1, 5, 3]
-p = [1, 4, 2, 5, 3]
-
-f = np.array([
-    [0, 5, 2, 4, 1],
-    [5, 0, 3, 0, 2],
-    [2, 3, 0, 0, 0],
-    [4, 0, 0, 0, 5],
-    [1, 2, 0, 5, 0]
-])
-
-d = np.array([
-    [0, 1, 1, 2, 3],
-    [1, 0, 2, 1, 2],
-    [1, 2, 0, 1, 2],
-    [2, 1, 1, 0, 1],
-    [3, 2, 2, 1, 0]
-])
-
-# p = [1, 2, 3, 4]
-
-# d = np.array([
-#     [0, 22, 53, 53],
-#     [22, 0, 40, 62],
-#     [53, 40, 0, 55],
-#     [53, 62, 55, 0],
-# ])
-
-# f = np.array([
-#     [0, 3, 0, 2],
-#     [3, 0, 0, 1],
-#     [0, 0, 0, 4],
-#     [2, 1, 4, 0]
-# ])
+# cost calculating cost function
 
 
-def swap(f, d, p):
+def cost_function(f, d, p):
     temp1 = np.copy(f)
     for i, elem in enumerate(f):
         temp1[i, :] = f[p[i] - 1, :]
@@ -52,14 +18,47 @@ def swap(f, d, p):
 
     return sum(np.diag(temp2.dot(d)))
 
-cost = swap(f, d, p)
-print cost
 
-# my_array = np.arange(9).reshape(3, 3)
-# swap_rows(my_array, 0, 2)
-# print my_array
+def swap_index(p, s):
+    temp = copy.deepcopy(p)
+    i = s[0] - 1
+    j = s[1] - 1
+    temp[i], temp[j] = temp[j], temp[i]
+    return temp
 
-# print pfp
 
-# print flow
-# print distance
+# set up 2d arrays for flow and distance
+flow = list(csv.reader(open("q3_csv/Flow.csv"), delimiter=','))
+flow = [[int(string) for string in inner] for inner in flow]
+flow = np.array(flow)
+distance = list(csv.reader(open("q3_csv/Distance.csv"), delimiter=','))
+distance = [[int(string) for string in inner] for inner in distance]
+distance = np.array(distance)
+
+# initial permutation
+p = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+# initial cost
+cost = cost_function(flow, distance, p)
+print "Cost:", cost, "Permutation:", p
+
+# iterations
+T = 100
+tabu_list = {}
+for t in xrange(T):
+    d = dict()
+    combs = list(it.combinations(p, 2))
+    for i, elem in enumerate(combs):
+        perm = swap_index(p, elem)
+        cost = cost_function(flow, distance, perm)
+        d[elem] = cost
+
+    minimum = min(d, key=d.get)
+    while minimum in tabu_list:
+        del d[minimum]
+        minimum = min(d, key=d.get)
+        
+    tabu_list[minimum] = True
+
+    p = swap_index(p, minimum)
+    print "Cost:", cost_function(flow, distance, p), "Permutation:", p, "Swap:", minimum, "T:", t + 1
