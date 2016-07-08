@@ -101,23 +101,26 @@ class Agent(Player):
 
     def __init__(self, player, eval):
         Player.__init__(self, player)
-        self.prev = None
+        self.prev = ([0, 0], [0, 0])
         self.eval = eval
         self.moves = [(1, 0), (-1, 0), (0, -1), (0, 1),
                       (1, -1), (1, 1), (-1, -1), (-1, 1)]
 
-    def makeBestMove(self, board, depth):
+    def makeBestMove(self, board, depth, prune):
         """Plays the best possibe move using min/max strategy"""
 
         # Build game tree
         root = Node(board, self.player)
-        value = self.buildGameTree(depth, root)
-        self.prev = value
-        self.makeMove(board, root.best_move[
-            0], root.best_move[1], self.player)
-        nodes = self.getChildren(root)
-        print "Searched " + str(nodes) + " nodes up to depth " + str(depth)
-        print "Best move is move from " + str(root.best_move[0]) + " to " + str(root.best_move[1])
+        value = self.buildGameTree(depth, root, prune)
+        if root.best_move[0] == self.prev[1] and root.best_move[1] == self.prev[0]:
+            self.makeRndMove(board, 1)
+        else:
+            self.makeMove(board, root.best_move[
+                0], root.best_move[1], self.player)
+            nodes = self.getChildren(root)
+            print "Searched " + str(nodes) + " nodes up to depth " + str(depth)
+            print "Best move is move from " + str(root.best_move[0]) + " to " + str(root.best_move[1])
+            self.prev = root.best_move
 
     def getChildren(self, node, container=[]):
         for c in node.children:
@@ -126,7 +129,7 @@ class Agent(Player):
                 self.getChildren(c, container)
         return len(container)
 
-    def buildGameTree(self, depth, root, alpha=-float('inf'), beta=float('inf')):
+    def buildGameTree(self, depth, root, prune, alpha=-float('inf'), beta=float('inf')):
         """Builds and searches the game tree recursively"""
 
         tiles = self.getPlayerTiles(root.state, root.player)
@@ -141,20 +144,19 @@ class Agent(Player):
 
         # Find heuristic value of leaf nodes based on evaluation function
         if depth == 0 or len(possible_moves) == 0:
-            root.value = self.calculateHeuristic(root.state)
-            return root.value
+            return self.calculateHeuristic(root.state)
         # Alpha-Beta Pruning
         if root.player == self.player:
             for move in all_moves:
                 next_state = copy.deepcopy(root.state)
                 self.makeMove(next_state, move[0], move[1], root.player)
                 child = Node(next_state, opponent)
-                value = self.buildGameTree(depth - 1, child, alpha, beta)
+                value = self.buildGameTree(
+                    depth - 1, child, prune, alpha, beta)
                 if value > alpha:
-                    # root.alpha = value
                     alpha = value
                     root.best_move = (move[0], move[1])
-                if alpha > beta:
+                if alpha > beta and prune:
                     break
                 root.children.append(child)
             return alpha
@@ -163,11 +165,12 @@ class Agent(Player):
                 next_state = copy.deepcopy(root.state)
                 self.makeMove(next_state, move[0], move[1], root.player)
                 child = Node(next_state, opponent)
-                value = self.buildGameTree(depth - 1, child, alpha, beta)
+                value = self.buildGameTree(
+                    depth - 1, child, prune, alpha, beta)
                 if value < beta:
                     beta = value
                     root.best_move = (move[0], move[1])
-                if beta < alpha:
+                if beta < alpha and prune:
                     break
                 root.children.append(child)
             return beta
@@ -303,10 +306,11 @@ class Board():
 
 # Simulate AI agent vs random agent
 total = 0
-for runs in xrange(1):
+games = 10
+for runs in xrange(games):
     b = Board()
     p1 = Agent(1, 0)
-    p2 = Agent(2, 2)
+    p2 = Agent(2, 1)
     print "Game Start"
     b.show()
     turn = 1
@@ -314,18 +318,34 @@ for runs in xrange(1):
         print "Turn " + str(turn)
         print "Player One Move"
         p1.makeRndMove(b, 1)
-        b.show()
+        # b.show()
         if p2.numberOfMoves(b, 2) == 0:
             print "GAME OVER"
             break
         print "Player Two Move"
-        p2.makeBestMove(b, 3)
-        b.show()
+        p2.makeBestMove(b, 3, True)
+        # b.show()
         if p1.numberOfMoves(b, 1) == 0:
             print "GAME OVER"
             break
         turn += 1
         # if turn > 50:
         #   break
+    print "Total turns for AI to beta Random in game " + str(runs) + ": " + str(turn)
     total += turn
-print "Average moves: ", total / 1
+print "Average moves: ", total / games
+
+
+# Show searches with and without pruning
+b2 = Board()
+p3 = Agent(1, 0)
+p4 = Agent(2, 1)
+print "Pruning Enabled"
+p3.makeMove(b2, [0, 0], [1, 0], 1)
+b2.show()
+p4.makeBestMove(b2, 3, True)
+b2 = Board()
+print "Pruning Disabled"
+p3.makeMove(b2, [0, 0], [1, 0], 1)
+b2.show()
+p4.makeBestMove(b2, 3, False)
