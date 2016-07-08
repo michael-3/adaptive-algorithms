@@ -9,7 +9,7 @@ ASPRIATION = False
 RAND_START = False
 ITERATIONS = 1000
 RAND_TABU_LENGTH = False
-SLICE_NEIGHBORS = True
+SLICE_NEIGHBORS = False
 
 
 def cost_function(f, d, p):
