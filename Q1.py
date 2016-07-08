@@ -66,6 +66,7 @@ def find(arr, el):
 
 
 def bfs(grid, start):
+    visit_ctr = 0
     fringe = Queue()
     fringe.put(start)
     print "Starting at {}".format(start)
@@ -77,10 +78,10 @@ def bfs(grid, start):
         current = fringe.get()
 
         # print "Visiting at {}".format(current)
-
+        visit_ctr += 1
         if grid[current[0]][current[1]] == '4':
             print "Found {}".format(current)
-            return get_path(path, start, current)
+            return get_path(path, start, current), visit_ctr
             break
 
         for n in get_neighbors(grid, current):
@@ -91,6 +92,7 @@ def bfs(grid, start):
 
 
 def dfs(grid, start):
+    visit_ctr = 0
     fringe = list()
     fringe.append(start)
     print "Starting at {}".format(start)
@@ -102,10 +104,10 @@ def dfs(grid, start):
         current = fringe.pop()
 
         # print "Visiting at {}".format(current)
-
+        visit_ctr += 1
         if grid[current[0]][current[1]] == '4':
             print "Found {}".format(current)
-            return get_path(path, start, current)
+            return get_path(path, start, current), visit_ctr
             break
 
         for n in get_neighbors(grid, current):
@@ -141,6 +143,7 @@ def in_queue(item, pq):
 
 
 def a_star(grid, start, end):
+    visit_ctr = 0
     print "Starting at {}".format(start)
 
     start = a_cell(start)
@@ -154,7 +157,7 @@ def a_star(grid, start, end):
     while openset:
         # Find the item in the open set with the lowest G + H score
         current = openset.get_nowait()[1]
-
+        visit_ctr += 1
         # print "Visiting at {}".format(current.val)
 
         if current.val == end.val:
@@ -164,7 +167,7 @@ def a_star(grid, start, end):
                 path.append(current.val)
                 current = current.parent
             path.append(current.val)
-            return path
+            return path, visit_ctr
             break
 
         # Add it to the closed set
@@ -222,8 +225,10 @@ for f in files:
     out = open(name, 'w+')
     print "\nStarting BFS for {}".format(f)
     print "==================="
-    path = bfs(grid, start)
+    path, visted = bfs(grid, start)
     print >>out, "Path = {}\n".format(path)
+    print >>out, "Cost = {}\n".format(len(path))
+    print >>out, "Cells Visited = {}\n".format(visted)
     for row in print_grid(grid, path):
         print >>out, row
 
@@ -231,8 +236,10 @@ for f in files:
     out = open(name, 'w+')
     print "\nStarting DFS for {}".format(f)
     print "==================="
-    path = dfs(grid, start)
+    path, visted = dfs(grid, start)
     print >>out, "Path = {}\n".format(path)
+    print >>out, "Cost = {}\n".format(len(path))
+    print >>out, "Cells Visited = {}\n".format(visted)
     for row in print_grid(grid, path):
         print >>out, row
 
@@ -240,7 +247,9 @@ for f in files:
     out = open(name, 'w+')
     print "\nStarting A_* for {}".format(f)
     print "==================="
-    path = a_star(grid, start, end)
+    path, visted = a_star(grid, start, end)
     print >>out, "Path = {}\n".format(path)
+    print >>out, "Cost = {}\n".format(len(path))
+    print >>out, "Cells Visited = {}\n".format(visted)
     for row in print_grid(grid, path):
         print >>out, row
