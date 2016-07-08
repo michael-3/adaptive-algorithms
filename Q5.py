@@ -28,11 +28,16 @@ Return(BestS);
 }
 '''
 
+# Parser
+# return hashmap of capacity for each node, list of customers, hashmap of
+# coordinates for each node
+
+
 # customers - array of tuples (customer, demand)
 
 
 def initialSolution(customers, capacity):
-    routes = []
+    routes = {}
     visited = []
     while len(visited) != len(customers):
         c = capacity
@@ -42,9 +47,28 @@ def initialSolution(customers, capacity):
                 route.append(customer[0])
                 visited.append(customer[0])
                 c -= customer[1]
-        routes += route
+        route.append(0)
+        routes[len(routes)] = route
     return routes
 
 cust = [(2, 3), (3, 9), (4, 6), (5, 5), (6, 7), (7, 12), (8, 15), (9, 3)]
 
 print initialSolution(cust, 15)
+
+
+def annealingCVRP(customers, capacity, vehicles):
+    s = initialSolution(customers, capacity)
+    a = 0.99  # temp reduction multiplier
+    b = 1.05  # iteration multiplier
+    M = 5  # time to next param update
+    best = s
+    T = 5000
+    current_s = s
+    current_cost = cost(s)
+
+
+def cost(solution):
+
+
+def euclid_distance(x1, y1, x2, y2):
+    return math.sqrt((x2 - x1) ** 2 - (y2 - y1) ** 2)
