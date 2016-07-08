@@ -28,6 +28,7 @@ Return(BestS);
 }
 '''
 import math
+import random
 # Parser
 # return hashmap of capacity for each node, list of customers, hashmap of
 # coordinates for each node
@@ -52,15 +53,43 @@ def initialSolution(customers, capacity):
     return solution
 
 
-def annealingCVRP(customers, capacity, vehicles):
+def annealingCVRP(customers, capacity, vehicles, coordinates, maxT):
     s = initialSolution(customers, capacity)
     a = 0.99  # temp reduction multiplier
     b = 1.05  # iteration multiplier
-    M = 5  # time to next param update
+    Mo = 5  # time to next param update
     best = s
     T = 5000
     current_s = s
     current_cost = cost(s)
+    time = 0
+    while time < maxT and T > 0.001:
+        M = Mo
+        while (M > 0):
+            new_s = neighbor(s)
+            new_cost = cost(new_s, coordinates)
+            delta_cost = new_cost - current_cost
+            if delta_cost < 0:
+                current_s = new_s
+                current_cost = new_cost
+                if (new_cost < best_cost):
+                    best = new_s
+                    best_cost = new_cost
+            elif math.random.random() < math.exp(-delta_cost / T):
+                current_s = new_s
+                current_cost = new_cost
+            M = M - 1
+        time = time + Mo
+        T = a * T
+        Mo = b * Mo
+    return best
+
+# returns a neighbor of the solution using the following transformations
+
+
+def neighbor(solution):
+    return neighbor
+
 
 # solution - hashmap of routes {route #: route}
 # coordinates - hashmap of coordinates {node 1: (x,y)}
