@@ -9,6 +9,7 @@
 
 import copy
 import random
+import math
 
 
 class Player():
@@ -40,8 +41,9 @@ class Player():
             # If next tile is invalid, move all remaining stones from initial
             # tile to current tile
             if (not self.isValid(board, x_next, y_next, dx, dy, player) or
-                stonesRemoved > board.amount[y_initial][x_initial]):
-                board.amount[y_next][x_next] += board.amount[y_initial][x_initial]
+                    stonesRemoved > board.amount[y_initial][x_initial]):
+                board.amount[y_next][
+                    x_next] += board.amount[y_initial][x_initial]
                 board.amount[y_initial][x_initial] = 0
             else:
                 board.amount[y_next][x_next] += stonesRemoved
@@ -92,7 +94,6 @@ class Node():
         self.children = []
         self.state = state
         self.player = player
-        self.value = None
         self.best_move = None
 
 
@@ -100,6 +101,7 @@ class Agent(Player):
 
     def __init__(self, player, eval):
         Player.__init__(self, player)
+        self.prev = None
         self.eval = eval
         self.moves = [(1, 0), (-1, 0), (0, -1), (0, 1),
                       (1, -1), (1, 1), (-1, -1), (-1, 1)]
@@ -110,13 +112,72 @@ class Agent(Player):
         # Build game tree
         root = Node(board, self.player)
         value = self.buildGameTree(depth, root)
-        self.makeMove(board, root.best_move[0], root.best_move[1], self.player)
+        self.prev = value
+        self.makeMove(board, root.best_move[
+            0], root.best_move[1], self.player)
+        nodes = self.getChildren(root)
+        print "Searched " + str(nodes) + " nodes up to depth " + str(depth)
+        print "Best move is move from " + str(root.best_move[0]) + " to " + str(root.best_move[1])
 
-    def buildGameTree(self, depth, root):
+    def getChildren(self, node, container=[]):
+        for c in node.children:
+            container.append(c)
+            if hasattr(c, 'children'):
+                self.getChildren(c, container)
+        return len(container)
+
+    def buildGameTree(self, depth, root, alpha=-float('inf'), beta=float('inf')):
         """Builds and searches the game tree recursively"""
 
         tiles = self.getPlayerTiles(root.state, root.player)
+        all_moves = []
+        opponent = 2 if root.player == 1 else 1
 
+        # Get all possible moves from player
+        for tile in tiles:
+            possible_moves = self.movesFromTile(root.state, tile)
+            for move in possible_moves:
+                all_moves.append((tile, move))
+
+        # Find heuristic value of leaf nodes based on evaluation function
+        if depth == 0 or len(possible_moves) == 0:
+            root.value = self.calculateHeuristic(root.state)
+            return root.value
+        # Alpha-Beta Pruning
+        if root.player == self.player:
+            for move in all_moves:
+                next_state = copy.deepcopy(root.state)
+                self.makeMove(next_state, move[0], move[1], root.player)
+                child = Node(next_state, opponent)
+                value = self.buildGameTree(depth - 1, child, alpha, beta)
+                if value > alpha:
+                    # root.alpha = value
+                    alpha = value
+                    root.best_move = (move[0], move[1])
+                if alpha > beta:
+                    break
+                root.children.append(child)
+            return alpha
+        else:
+            for move in all_moves:
+                next_state = copy.deepcopy(root.state)
+                self.makeMove(next_state, move[0], move[1], root.player)
+                child = Node(next_state, opponent)
+                value = self.buildGameTree(depth - 1, child, alpha, beta)
+                if value < beta:
+                    beta = value
+                    root.best_move = (move[0], move[1])
+                if beta < alpha:
+                    break
+                root.children.append(child)
+            return beta
+
+        # return root.alpha if root.player == self.player else root.beta
+
+    def buildGameTree2(self, depth, root):
+        """Builds and searches the game tree recursively"""
+
+        tiles = self.getPlayerTiles(root.state, root.player)
         opponent = 2 if root.player == 1 else 1
 
         for tile in tiles:
@@ -129,30 +190,34 @@ class Agent(Player):
                 next_state = copy.deepcopy(root.state)
                 self.makeMove(next_state, tile, move, root.player)
                 child = Node(next_state, opponent)
-                root.children.append(child)
                 value = self.buildGameTree(depth - 1, child)
                 # Alpha-Beta Pruning
-                if root.player != self.player:
+                if root.player == self.player:
                     if value > root.alpha:
                         root.alpha = value
                         root.best_move = (tile, move)
                     if root.alpha > root.beta:
-                        return root.alpha
+                        # return root.alpha
+                        break
                 else:
                     if value < root.beta:
                         root.beta = value
                         root.best_move = (tile, move)
                     if root.beta < root.alpha:
-                        return root.beta
+                        # return root.beta
+                        break
+                root.children.append(child)
 
-        return root.beta if root.player == self.player else root.alpha
+        return root.alpha if root.player == self.player else root.beta
 
     def calculateHeuristic(self, state):
         # Find the number of moves available to player
         if self.eval == 1:
-            return self.numberOfMoves(state, self.opponent)
+            return self.numberOfMoves(state, self.player) - self.numberOfMoves(state, self.opponent)
+        if self.eval == 2:
+            return 1 / math.exp(self.numberOfMoves(state, self.opponent))
 
-    def playRndMove(self, board, seed):
+    def makeRndMove(self, board, seed):
         """Plays a random valid move"""
 
         all_moves = []
@@ -162,10 +227,11 @@ class Agent(Player):
             for move in moves:
                 all_moves.append((tile, move))
         if not all_moves:
-            print "GAME OVER"
+            raise Exception("No moves to play!")
         else:
             random_move = random.choice(all_moves)
             self.makeMove(b, random_move[0], random_move[1], self.player)
+            print "Random move from " + str(random_move[0]) + " to " + str(random_move[1])
 
     def movesFromTile(self, board, tile):
         """Returns the possible moves a player can make from tile"""
@@ -234,79 +300,32 @@ class Board():
             print row
             print "|___________|___________|___________|___________|"
 
-b = Board()
-p1 = Agent(1, 0)
-p2 = Agent(2, 1)
 
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
-print "Player 1 Turn"
-p1.playRndMove(b, 1)
-b.show()
-print "Player 2 Turn"
-p2.makeBestMove(b, 3)
-b.show()
+# Simulate AI agent vs random agent
+total = 0
+for runs in xrange(1):
+    b = Board()
+    p1 = Agent(1, 0)
+    p2 = Agent(2, 2)
+    print "Game Start"
+    b.show()
+    turn = 1
+    while True:
+        print "Turn " + str(turn)
+        print "Player One Move"
+        p1.makeRndMove(b, 1)
+        b.show()
+        if p2.numberOfMoves(b, 2) == 0:
+            print "GAME OVER"
+            break
+        print "Player Two Move"
+        p2.makeBestMove(b, 3)
+        b.show()
+        if p1.numberOfMoves(b, 1) == 0:
+            print "GAME OVER"
+            break
+        turn += 1
+        # if turn > 50:
+        #   break
+    total += turn
+print "Average moves: ", total / 1
