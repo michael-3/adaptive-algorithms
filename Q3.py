@@ -5,7 +5,11 @@ import random
 import numpy as np
 import itertools as it
 
-# cost calculating cost function
+ASPRIATION = False
+RAND_START = False
+ITERATIONS = 1000
+RAND_TABU_LENGTH = False
+SLICE_NEIGHBORS = True
 
 
 def cost_function(f, d, p):
@@ -44,31 +48,33 @@ distance = np.array(distance)
 
 # initial permutation
 p = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-# random.shuffle(p)
+
+if RAND_START:
+    random.shuffle(p)
 
 # optimized P
 p_opt = [18, 14, 10, 3, 9, 4, 2, 12, 11, 16, 19, 15, 20, 8, 13, 17, 5, 7, 1, 6]
 
 # initial cost
 cost = cost_function(flow, distance, p)
-print "Cost:", cost, "Permutation:", p
+print "Cost:", cost, "Starting Point:", p
 
-# iterations
-T = 10000
 tabu_list = {}
 
 prev_cost = cost
 min_cost = cost
 min_p = p
 
-aspiration = False
-search_ctr = 0
-
-for t in xrange(T):
+for t in xrange(ITERATIONS):
     decrement_tabu(tabu_list)
     d = dict()
     d2 = dict()
+
     combs = list(it.combinations(p, 2))
+
+    if SLICE_NEIGHBORS:
+        combs = random.sample(combs, len(combs) / 2)
+
     for i, elem in enumerate(combs):
         perm = swap_index(p, elem)
         cost = cost_function(flow, distance, perm)
@@ -80,10 +86,14 @@ for t in xrange(T):
     while minimum in tabu_list and tabu_list[minimum] > 0:
         del d[minimum]
         minimum = min(d, key=d.get)
-    tabu_list[minimum] = 15
+
+    if RAND_TABU_LENGTH:
+        tabu_list[minimum] = random.randint(10, 20)
+    else:
+        tabu_list[minimum] = 10
 
     # Aspiration, take random if previous cost is greater or equal to curent
-    if aspiration:
+    if ASPRIATION:
         if d[minimum] >= prev_cost:
             minimum = random.choice(d2.keys())
         prev_cost = d2[minimum]
@@ -97,5 +107,5 @@ for t in xrange(T):
 
     print "Cost:", cost, "Permutation:", p, "Swap:", minimum, "T:", t + 1, "\tMin Cost:", min_cost
 
-print min_cost, min_p
-print cost_function(flow, distance, p_opt), p_opt
+print "Cost:", min_cost, "Found:", min_p
+# print cost_function(flow, distance, p_opt), p_opt
