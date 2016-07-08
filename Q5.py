@@ -75,7 +75,7 @@ def annealingCVRP(customers, capacity, vehicles, coordinates, maxT):
                 if (new_cost < best_cost):
                     best = new_s
                     best_cost = new_cost
-            elif math.random.random() < math.exp(-delta_cost / T):
+            elif random.random() < math.exp(-delta_cost / T):
                 current_s = new_s
                 current_cost = new_cost
             M = M - 1
@@ -84,11 +84,34 @@ def annealingCVRP(customers, capacity, vehicles, coordinates, maxT):
         Mo = b * Mo
     return best
 
-# returns a neighbor of the solution using the following transformations
+# returns a neighbor of the solution using random swapping
 
 
-def neighbor(solution):
+def neighbor(solution, capacity):
+
+	# find 2 routes in the solution with highest cost or 2 random routes
+	# randomly swap a node between them while under the capacity constaint
+	neighbor = solution  # don't think we need this assignment...
+	a, b = random.sample(neighbor.keys(), 2)
+	route_a = neighbor.get(a)
+	route_b = neighbor.get(b)
+	node_a = random.choice(route_a)
+	node_b = random.choice(route_b)
+
+	# Swap
+	route_a[route_a.index(node_a)] = node_b
+	route_b[route_b.index(node_b)] = node_a
+
+	# Need checking here to see if the swap is valid (i.e. route is within capacity)
+	# if swapping not valid, select another route randomly
+
+	neighbor[a] = route_a
+	neighbor[b] = route_b
+
     return neighbor
+
+def valid(route, customers, capacity):
+	return True
 
 
 # solution - hashmap of routes {route #: route}
@@ -114,7 +137,7 @@ def cost(solution, coordinates):
 def euclid_distance(x1, y1, x2, y2):
     return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-cust = [(2, 3), (3, 9), (4, 6), (5, 5), (6, 7), (7, 12), (8, 15), (9, 3)]
+cust = [(1, 0), (2, 3), (3, 9), (4, 6), (5, 5), (6, 7), (7, 12), (8, 15), (9, 3)]
 loc = {0: (0, 0), 1: (82, 76), 2: (96, 44), 3: (50, 5), 4: (49, 8),
        5: (13, 7), 6: (29, 89), 7: (58, 30), 8: (84, 39), 9: (14, 24)}
 
