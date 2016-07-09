@@ -18,6 +18,9 @@ def parser(vrf):
     customers = {}
     with open(vrf) as f:
         for i, line in enumerate(f):
+            if i == 1:
+                comment = line.split()
+                optimal = ''.join(c for c in comment[-1] if c.isdigit())
             if i == 5:
                 capacity = int(''.join(c for c in line if c.isdigit()))
             if i >= 7 and i < 7 + nodes:
@@ -27,7 +30,7 @@ def parser(vrf):
                 a = line.split()
                 customers[int(a[0])] = int(a[1])
 
-    return nodes, vehicles, capacity, coordinates, customers
+    return nodes, vehicles, capacity, coordinates, customers, optimal
 
 # customers - hashmap of customers {customer: demand}
 # return: hashmap of routes {route #: route}
@@ -51,16 +54,16 @@ def initialSolution(customers, capacity):
 
 def annealingCVRP(customers, capacity, coordinates, maxT):
     s = initialSolution(customers, capacity)
-    print s
-    a = 0.85  # temp reduction multiplier
-    b = 1.05  # iteration multiplier
+    print "Intial solution: ", s
+    a = 0.95  # temp reduction multiplier
+    b = 1.1  # iteration multiplier
     Mo = 5  # time to next param update
+    T = 5000.
     best = s
-    T = 5000
     current_s = s
     current_cost = cost(s, coordinates)
-    print current_cost
     best_cost = current_cost
+    print "Greedy cost: ", current_cost
     time = 0
     while time < maxT and T >= 0.001:
         M = Mo
@@ -74,7 +77,7 @@ def annealingCVRP(customers, capacity, coordinates, maxT):
                 if (new_cost < best_cost):
                     best = new_s
                     best_cost = cost(best, coordinates)  # ???
-            elif random.random() < math.exp(-delta_cost / T):
+            elif random.random() < math.exp(-(delta_cost / T)):
                 current_s = new_s
                 current_cost = cost(current_s, coordinates)  # ???
             M = M - 1
@@ -96,8 +99,6 @@ def neighbor(solution, capacity):
         a, b = random.sample(solution.keys(), 2)
         route_a = solution.get(a)
         route_b = solution.get(b)
-        print "route a", route_a
-        print "route b", route_b
         node_a = random.choice(route_a[1:-1])
         node_b = random.choice(route_b[1:-1])
 
@@ -118,25 +119,25 @@ def neighbor(solution, capacity):
     else:
         a, b = random.sample(solution.keys(), 2)
         route_a = solution.get(a)
-
-        while len(route_a) <= 4:
+        while len(route_a) <= 3:
             a, b = random.sample(solution.keys(), 2)
             route_a = solution.get(a)
         route_b = solution.get(b)
         node_a = random.choice(route_a[1:-1])
 
-        # Append
+        # Random insert
         random_insert = random.randrange(1, len(route_b), 1)
         route_b.insert(random_insert, node_a)
         route_a.remove(node_a)
 
-        # Randomly append until a valid append is found
+        # Randomly insert until a valid insert is found
         while not valid(route_b, customers, capacity):
             a, b = random.sample(solution.keys(), 2)
             route_a = solution.get(a)
+            while len(route_a) <= 3:
+                a, b = random.sample(solution.keys(), 2)
+                route_a = solution.get(a)
             route_b = solution.get(b)
-            print "route a", route_a
-            print "route b", route_b
             node_a = random.choice(route_a[1:-1])
             random_insert = random.randrange(1, len(route_b), 1)
             route_b.insert(random_insert, node_a)
@@ -176,7 +177,7 @@ def cost(solution, coordinates):
 
 
 def euclid_distance(x1, y1, x2, y2):
-    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+    return float(math.sqrt(math.pow((x2 - x1), 2) + math.pow((y2 - y1), 2)))
 
 '''
 cust = {1: 0, 2: 3, 3: 9, 4: 6, 5: 5,
@@ -187,15 +188,17 @@ loc = {0: (0, 0), 1: (82, 76), 2: (96, 44), 3: (50, 5), 4: (49, 8),
 i = initialSolution(cust, 15)
 print cost(i, loc)
 '''
-
-nodes, vehicles, capacity, coordinates, customers = parser(
-    ".\A-VRP\A-n32-k5.vrp")
-
-best, best_cost = annealingCVRP(customers, capacity, coordinates, 10000)
-
-print best
-print best_cost
-print cost(best, coordinates)
+instances = os.listdir(".\A-VRP")
+for instance in instances:
+    nodes, vehicles, capacity, coordinates, customers, optimal = parser(
+        ".\A-VRP\\" + instance)
+# print coordinates
+# print customers
+    best, best_cost = annealingCVRP(customers, capacity, coordinates, 10000)
+    print "Instance: ", instance
+    print "Best solution: ", best
+    print "Best cost: ", best_cost
+    print "Optimal cost: ", optimal
 
 
 '''
@@ -211,8 +214,8 @@ print neighbor(s, 100)
 '''
 print coordinates
 print cost(s, coordinates)
-
-
+'''
+'''
 test = {1: [1, 22, 32, 20, 18, 14, 8, 27, 1],
         2: [1, 13, 2, 17, 31, 1],
         3: [1, 28, 25, 1],
