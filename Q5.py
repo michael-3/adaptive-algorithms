@@ -5,6 +5,7 @@ Annealing CVRP()
 import math
 import random
 import os
+import copy
 # Parser
 # return hashmap of capacity for each node, hashmap of
 # coordinates for each node
@@ -56,7 +57,7 @@ def annealingCVRP(customers, capacity, coordinates, maxT):
     s = initialSolution(customers, capacity)
     print "Intial solution: ", s
     a = 0.95  # temp reduction multiplier
-    b = 1.1  # iteration multiplier
+    b = 1.05  # iteration multiplier
     Mo = 5  # time to next param update
     T = 5000.
     best = s
@@ -68,18 +69,20 @@ def annealingCVRP(customers, capacity, coordinates, maxT):
     while time < maxT and T >= 0.001:
         M = Mo
         while (M >= 0):
-            new_s = neighbor(current_s, capacity)
+            new_s = neighbor(current_s, capacity, customers)
             new_cost = cost(new_s, coordinates)
             delta_cost = new_cost - current_cost
             if delta_cost < 0:
                 current_s = new_s
-                current_cost = cost(new_s, coordinates)  # ???
+                current_cost = new_cost
                 if (new_cost < best_cost):
                     best = new_s
-                    best_cost = cost(best, coordinates)  # ???
+                    best_cost = new_cost
+                    print best, best_cost
+                    print T
             elif random.random() < math.exp(-(delta_cost / T)):
                 current_s = new_s
-                current_cost = cost(current_s, coordinates)  # ???
+                current_cost = new_cost
             M = M - 1
         time = time + Mo
         T = a * T
@@ -91,10 +94,8 @@ def annealingCVRP(customers, capacity, coordinates, maxT):
 # randomly swap a node between them while under the capacity constaint
 
 
-def neighbor(solution, capacity):
-
+def neighbor(solution, capacity, customers):
     method = random.random()
-
     if method < 0.5:
         a, b = random.sample(solution.keys(), 2)
         route_a = solution.get(a)
@@ -107,7 +108,9 @@ def neighbor(solution, capacity):
         route_b[route_b.index(node_b)] = node_a
 
         # Randomly swap until a valid swap is found
-        while not valid(route_a, customers, capacity) and not valid(route_b, customers, capacity):
+        while not (valid(route_a, customers, capacity) and valid(route_b, customers, capacity)):
+            route_a[route_a.index(node_b)] = node_a
+            route_b[route_b.index(node_a)] = node_b
             a, b = random.sample(solution.keys(), 2)
             route_a = solution.get(a)
             route_b = solution.get(b)
@@ -116,7 +119,7 @@ def neighbor(solution, capacity):
             route_a[route_a.index(node_a)] = node_b
             route_b[route_b.index(node_b)] = node_a
 
-    else:
+    elif method >= 0.5:
         a, b = random.sample(solution.keys(), 2)
         route_a = solution.get(a)
         while len(route_a) <= 3:
@@ -128,10 +131,13 @@ def neighbor(solution, capacity):
         # Random insert
         random_insert = random.randrange(1, len(route_b), 1)
         route_b.insert(random_insert, node_a)
+        index = route_a.index(node_a)
         route_a.remove(node_a)
 
         # Randomly insert until a valid insert is found
-        while not valid(route_b, customers, capacity):
+        while not (valid(route_a, customers, capacity) and valid(route_b, customers, capacity)):
+            route_b.remove(node_a)
+            route_a.insert(index, node_a)
             a, b = random.sample(solution.keys(), 2)
             route_a = solution.get(a)
             while len(route_a) <= 3:
@@ -141,11 +147,17 @@ def neighbor(solution, capacity):
             node_a = random.choice(route_a[1:-1])
             random_insert = random.randrange(1, len(route_b), 1)
             route_b.insert(random_insert, node_a)
+            index = route_a.index(node_a)
             route_a.remove(node_a)
 
+    # print "before ", solution
+    # print "routea ", a, route_a, valid(route_a, customers, capacity)
+    # print "routeb ", b, route_b, valid(route_b, customers, capacity)
     solution[a] = route_a
     solution[b] = route_b
-
+    # print "after ", solution
+    # for i in solution.values():
+    #   print valid(i, customers, capacity)
     return solution
 
 
@@ -153,7 +165,7 @@ def valid(route, customers, capacity):
     total = 0
     for c in route:
         total += customers.get(c)
-    return total < capacity
+    return total <= capacity
 
 
 # solution - hashmap of routes {route #: route}
@@ -189,6 +201,7 @@ i = initialSolution(cust, 15)
 print cost(i, loc)
 '''
 instances = os.listdir(".\A-VRP")
+'''
 for instance in instances:
     nodes, vehicles, capacity, coordinates, customers, optimal = parser(
         ".\A-VRP\\" + instance)
@@ -199,6 +212,14 @@ for instance in instances:
     print "Best solution: ", best
     print "Best cost: ", best_cost
     print "Optimal cost: ", optimal
+'''
+nodes, vehicles, capacity, coordinates, customers, optimal = parser(
+    ".\A-VRP\\" + instances[1])
+
+best, best_cost = annealingCVRP(customers, capacity, coordinates, 100000)
+print "Best solution: ", best
+print "Best cost: ", best_cost
+print "Optimal cost: ", optimal
 
 
 '''
@@ -215,11 +236,13 @@ print neighbor(s, 100)
 print coordinates
 print cost(s, coordinates)
 '''
-'''
-test = {1: [1, 22, 32, 20, 18, 14, 8, 27, 1],
-        2: [1, 13, 2, 17, 31, 1],
-        3: [1, 28, 25, 1],
-        4: [1, 30, 19, 9, 10, 23, 16, 11, 26, 6, 21, 1],
-        5: [1, 15, 29, 12, 5, 24, 4, 3, 7, 1]}
+# print capacity
+# print valid([1, 14, 9, 28, 26, 2, 22, 20, 12, 19, 11, 31, 13, 21, 30, 4,
+# 18, 10, 3, 23, 6, 27, 1], customers, capacity)
+
+test = {1: [1, 25, 7, 20, 12, 19, 32, 1],
+        2: [1, 3, 21, 5, 13, 11, 33, 8, 1],
+        3: [1, 31, 26, 28, 6, 27, 9, 14, 1],
+        4: [1, 23, 24, 29, 30, 2, 15, 22, 1],
+        5: [1, 16, 17, 4, 10, 18, 1]}
 print cost(test, coordinates)
-'''
